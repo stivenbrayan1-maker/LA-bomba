@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispositivo Disruptor Táctico v3.0</title>
+    <style>
+        :root {
+            --bg-outer: #0b0f17;
+            --panel-bg: rgba(20, 27, 41, 0.9);
+            --steel-dark: #151d2a;
+            --steel-border: #384252;
+            --screw-color: #576574;
+            
+            /* Cables texturizados */
+            --cable-blue: #0ea5e9;
+            --cable-orange: #ea580c;
+            --cable-green: #10b981;
+            --cable-purple: #8b5cf6;
+
+            --led-red: #ef4444;
+            --led-blue: #06b6d4;
+            --led-green: #22c55e;
+            --led-purple: #a855f7;
+            --led-orange: #f97316;
+            
+            --glow-red: 0 0 20px #ef4444, inset 0 0 8px #ef4444;
+            --glow-blue: 0 0 20px #06b6d4, inset 0 0 8px #06b6d4;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: radial-gradient(circle at center, #1e293b 0%, #030712 100%);
+            color: #e2e8f0;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; user-select: none;
+        }
+
+        h1 {
+            margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 2px;
+            color: #cbd5e1; text-transform: uppercase; text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+        }
+        
+        .level-indicator {
+            font-size: 13px; font-weight: bold; color: #f59e0b; letter-spacing: 2px;
+            text-transform: uppercase; margin: 8px 0 20px 0; background: #000;
+            padding: 6px 24px; border-radius: 4px; border: 1px solid #475569;
+        }
+
+        .game-wrapper { display: flex; gap: 25px; max-width: 1280px; width: 100%; align-items: flex-start; }
+
+        /* MANUAL INDUSTRIAL */
+        .manual-sidebar {
+            background: var(--panel-bg); border-radius: 8px; padding: 20px; width: 420px;
+            border: 2px solid var(--steel-border); box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            max-height: 660px; overflow-y: auto; font-family: sans-serif;
+        }
+
+        .manual-sidebar h2 { margin-top: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color: #f8fafc; border-bottom: 2px solid var(--steel-border); padding-bottom: 8px; }
+        
+        .rule-box {
+            background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); padding: 12px; 
+            border-radius: 4px; margin-bottom: 15px; font-size: 12px; color: #fca5a5; line-height: 1.4;
+        }
+
+        .matrix-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px; background: rgba(0,0,0,0.5); }
+        .matrix-table th, .matrix-table td { padding: 8px; text-align: center; border: 1px solid var(--steel-border); }
+        .matrix-table th { background: #0f172a; color: #94a3b8; }
+
+        .step-card {
+            background: rgba(15, 23, 42, 0.6); border-left: 4px solid #f59e0b; padding: 12px;
+            margin-bottom: 10px; font-size: 12px; color: #e2e8f0; line-height: 1.5; border-radius: 0 4px 4px 0;
+        }
+
+        /* CHASIS DE LA BOMBA */
+        .bomb-container-chassis {
+            background: #1e2530; border: 6px solid #334155; border-radius: 12px;
+            padding: 25px; width: 730px; box-shadow: inset 0 0 40px #000, 0 35px 70px rgba(0,0,0,0.9);
+            position: relative; border-bottom: 12px solid #1e293b;
+        }
+
+        .screw { width: 12px; height: 12px; background: var(--screw-color); border-radius: 50%; position: absolute; box-shadow: inset 1px 1px 2px #fff, 1px 2px 4px #000; }
+        .screw.tl { top: 8px; left: 8px; } .screw.tr { top: 8px; right: 8px; }
+        .screw.bl { bottom: 8px; left: 8px; } .screw.br { bottom: 8px; right: 8px; }
+
+        /* SAFETY LIGHTS */
+        .top-safety-panel {
+            display: flex; justify-content: center; gap: 80px; background: #0f172a;
+            padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 2px solid var(--steel-border);
+            box-shadow: inset 0 4px 10px #000;
+        }
+        .safety-light-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 1px; }
+        .safety-led {
+            width: 24px; height: 24px; border-radius: 50%; background: #020617; border: 2px solid #1e293b;
+            box-shadow: inset 0 2px 4px #000; transition: all 0.12s ease;
+        }
+        .safety-led.active-red { background: var(--led-red); box-shadow: var(--glow-red); }
+        .safety-led.active-blue { background: var(--led-blue); box-shadow: var(--glow-blue); }
+
+        /* GRID MÓDULOS */
+        .modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 245px); gap: 16px; }
+        
+        .mod-slot { 
+            background: #111827; border: 2px solid #1f2937; border-top: 2px solid #374151; border-left: 2px solid #374151;
+            border-radius: 6px; position: relative; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; box-shadow: inset 0 2px 10px rgba(0,0,0,0.8), 2px 4px 10px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* MATRIZ 4x4 */
+        .sensor-matrix-4x4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: #030712; padding: 12px; border-radius: 6px; border: 1px solid #1f2937; }
+        .matrix-cell { width: 14px; height: 14px; border-radius: 50%; background: #1f2937; box-shadow: inset 0 2px 3px #000; border: 1px solid #111; transition: opacity 0.15s ease, background-color 0.1s ease; }
+        .matrix-cell.red { background: var(--led-red); box-shadow: 0 0 14px var(--led-red); }
+        .matrix-cell.blue { background: var(--led-blue); box-shadow: 0 0 14px var(--led-blue); }
+        .matrix-cell.green { background: var(--led-green); box-shadow: 0 0 14px var(--led-green); }
+        .matrix-cell.purple { background: var(--led-purple); box-shadow: 0 0 14px var(--led-purple); }
+        .matrix-cell.orange { background: var(--led-orange); box-shadow: 0 0 14px var(--led-orange); }
+
+        /* CABLES REALISTAS (3D MODEL) */
+        .cables-board { background: #070a12; border-radius: 6px; width: 90%; height: 36px; margin-top: -60px; display: flex; justify-content: space-around; align-items: center; border: 2px solid #1e293b; position: relative; }
+        
+        .cable-socket { 
+            width: 18px; height: 18px; background: #111; border-radius: 50%; position: relative; 
+            border: 2px solid #475569; box-shadow: inset 0 3px 5px #000;
+        }
+        /* El borne metálico del cable */
+        .cable-socket::after {
+            content: ''; position: absolute; top: 4px; left: 4px; width: 6px; height: 6px;
+            background: linear-gradient(135deg, #94a3b8, #475569); border-radius: 50%;
+        }
+
+        .hanging-cable { 
+            width: 10px; height: 145px; position: absolute; top: 10px; left: 2px; 
+            border-radius: 5px; cursor: pointer; transform-origin: top center; 
+            transition: height 0.15s ease, filter 0.2s;
+            box-shadow: 5px 12px 16px rgba(0,0,0,0.7), inset -2px 0 4px rgba(0,0,0,0.4), inset 2px 0 4px rgba(255,255,255,0.2);
+        }
+        /* Simulación de relieve y textura de goma trenzada */
+        .hanging-cable.c-blue { background: linear-gradient(90deg, #025a87 0%, var(--cable-blue) 50%, #0c4a6e 100%); }
+        .hanging-cable.c-orange { background: linear-gradient(90deg, #9a3412 0%, var(--cable-orange) 50%, #7c2d12 100%); }
+        .hanging-cable.c-green { background: linear-gradient(90deg, #065f46 0%, var(--cable-green) 50%, #064e3b 100%); }
+        .hanging-cable.c-purple { background: linear-gradient(90deg, #5b21b6 0%, var(--cable-purple) 50%, #4c1d95 100%); }
+        
+        /* Caída natural levemente curvada */
+        .hanging-cable:not(.cut) { transform: rotate(0.5deg); }
+        .hanging-cable:not(.cut):hover { filter: brightness(1.2); width: 11px; }
+
+        .hanging-cable.cut { height: 28px; border-bottom: 4px dashed #ef4444; box-shadow: none; filter: brightness(0.4); pointer-events: none; }
+        .hanging-cable.cut.flash-error { animation: flashCable 0.3s infinite alternate; filter: brightness(1.2); border-bottom: 4px solid #f97316; pointer-events: auto; }
+        @keyframes flashCable { from { box-shadow: 0 0 4px #f97316; } to { box-shadow: 0 0 20px #f97316; } }
+
+        /* BOTONES MECÁNICOS */
+        .keypad-container { background: #030712; padding: 10px; border-radius: 6px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 85%; border: 1px solid #1f2937; }
+        .keypad-btn {
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%); border: 1px solid #475569; border-radius: 4px;
+            padding: 10px 0; font-size: 11px; font-weight: bold; color: #cbd5e1; text-align: center; cursor: pointer;
+            box-shadow: 0 4px 0 #0f172a; position: relative; top: 0; transition: all 0.05s ease;
+        }
+        .keypad-btn:active, .keypad-btn.active-click { top: 4px; box-shadow: 0 0px 0 #000; background: #0f172a; color: #f59e0b; border-color: #f59e0b; }
+
+        /* INTERRUPTOR HOLD */
+        .hold-square-btn {
+            width: 100px; height: 100px; background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+            border: 2px solid #64748b; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: bold; color: #94a3b8; box-shadow: 0 5px 0 #020617, 0 8px 15px rgba(0,0,0,0.6);
+            cursor: pointer; position: relative; top: 0; transition: all 0.04s;
+        }
+        .hold-square-btn:active, .hold-square-btn.holding { top: 5px; box-shadow: 0 0px 0 #000; color: #0ea5e9; border-color: #0ea5e9; }
+
+        /* TIMER SQUIRCLE */
+        .timer-bg { background: #020617; border: 2px solid #1e293b; border-radius: 6px; padding: 10px 20px; box-shadow: inset 0 2px 8px #000; }
+        .timer-text { font-family: monospace; font-size: 34px; color: #ef4444; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px rgba(239,68,68,0.5); }
+        .timer-text.warning { color: #f97316; text-shadow: 0 0 15px #f97316; animation: pulseWarning 0.4s infinite alternate; }
+        @keyframes pulseWarning { from { opacity: 0.5; } to { opacity: 1; } }
+
+        .progress-box { width: 85%; background: #020617; border-radius: 4px; height: 10px; padding: 2px; border: 1px solid #1f2937; margin-top: 12px; }
+        .progress-bar-inner { width: 0%; height: 100%; background: #10b981; border-radius: 2px; transition: width 0.2s ease; }
+
+        /* ENRUTADOR */
+        .planning-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 85%; background: #020617; padding: 10px; border-radius: 6px; border: 1px solid #1f2937; }
+        .node-btn { background: #1e293b; border: 1px solid #475569; border-radius: 4px; padding: 6px 0; font-size: 10px; font-weight: bold; color: #94a3b8; text-align: center; cursor: pointer; }
+        .node-btn.powered { background: #064e3b; color: #34d399; border-color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+
+        /* OVERLAYS */
+        .contingency-overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(11, 15, 23, 0.97); border-radius: 8px; z-index: 5; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease; border: 3px solid #f97316; 
+        }
+        .contingency-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .explosion-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #020617; border-radius: 8px; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; border: 2px solid #ef4444; transition: opacity 0.3s; }
+        .explosion-overlay.active { opacity: 1; pointer-events: auto; }
+        .cloud-animation { width: 70px; height: 70px; background: #475569; border-radius: 50%; box-shadow: 0 0 25px #ef4444, 15px -10px 0 #334155, -15px 10px 0 #1e293b; animation: expandCloud 2s infinite ease-out; }
+        @keyframes expandCloud { 0%, 100% { transform: scale(0.95); opacity: 0.6; } 50% { transform: scale(1.05); opacity: 0.8; } }
+
+        /* CONTROL BAR (SELECTOR DE NIVEL) */
+        .bottom-bar { display: flex; margin-top: 20px; gap: 15px; width: 100%; max-width: 1180px; }
+        .status-input-mock { flex-grow: 1; background: var(--panel-bg); border: 1px solid var(--steel-border); border-radius: 6px; padding: 14px; font-size: 12px; color: #94a3b8; text-align: center; font-weight: bold; }
+        
+        .level-selector-dropdown {
+            background: #0f172a; color: #f59e0b; border: 2px solid #475569; border-radius: 6px;
+            padding: 0 15px; font-weight: bold; font-family: monospace; cursor: pointer; outline: none;
+        }
+        .btn-reset-real { background: #1e293b; border: 1px solid #475569; border-radius: 6px; padding: 0 24px; font-weight: bold; font-size: 12px; cursor: pointer; color: #f8fafc; }
+        .btn-reset-real:hover { background: #334155; }
+    </style>
+</head>
+<body>
+
+    <h1>DISPOSITIVO DISRUPTOR TÁCTICO</h1>
+    <div class="level-indicator" id="lvlIndicator">Nivel 1 / 20</div>
+
+    <div class="game-wrapper">
+        <div class="manual-sidebar">
+            <h2>Manual de Desactivación Logística</h2>
+            
+            <div class="rule-box" style="background: rgba(249,115,22,0.05); border-color: rgba(249,115,22,0.3); color: #ffedd5;">
+                <strong>⚠️ ALERTA DE SABOTAJE (Nivel 8+):</strong> El núcleo simulará micro-colapsos sorpresivos justo después de un corte exitoso. Respire, localice el cable parpadeante y <strong>vuelva a cliquearlo para conectarlo</strong>.
+            </div>
+
+            <div class="rule-box" style="background: rgba(6,182,212,0.05); border-color: rgba(6,182,212,0.3); color: #ecfeff;">
+                <strong>🧠 SENSOR MATRIX INTERMITENTE (Nivel 4+):</strong> Las luces de la matriz desaparecerán periódicamente para desafiar tu retención mental. El chasis físico se mantendrá estable.
+            </div>
+
+            <p style="font-size: 11px; color:#94a3b8; font-weight: bold; margin-bottom: 6px;">Cifrado General de Matriz (4x4):</p>
+            <table class="matrix-table">
+                <thead><tr><th>Celdas Activas</th><th>Acción Requerida</th></tr></thead>
+                <tbody>
+                    <tr><td>🟢 Verde + 🔴 Rojo</td><td>Cortar cable <b style="color:var(--cable-blue)">Azul</b></td></tr>
+                    <tr><td>🟣 Morado + 🔴 Rojo</td><td>Cortar cable <b style="color:var(--cable-orange)">Naranja</b></td></tr>
+                    <tr><td>🔵 Azul + 🟠 Naranja</td><td>Cortar cable <b style="color:var(--cable-purple)">Morado</b></td></tr>
+                    <tr><td>🟢 Verde + 🔵 Azul</td><td>Cortar cable <b style="color:var(--cable-green)">Verde</b></td></tr>
+                </tbody>
+            </table>
+
+            <div id="stepsContainer"></div>
+        </div>
+
+        <div>
+            <div class="bomb-container-chassis">
+                <div class="screw tl"></div><div class="screw tr"></div>
+                <div class="screw bl"></div><div class="screw br"></div>
+                
+                <div class="contingency-overlay" id="contingencyOverlay">
+                    <div style="color: #f97316; font-size: 16px; font-weight: bold; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">⚠️ COLAPSO CRÍTICO DEL NÚCLEO</div>
+                    <div style="color: #cbd5e1; font-size: 12px; text-align: center; padding: 0 40px; line-height: 1.5; margin-bottom: 25px;">
+                        Inestabilidad por estrés detectada en la línea de datos.<br><br>
+                        Mantén la calma y <strong style="color: #f97316;">VUELVA A CONECTAR</strong> (Haz click) el último cable cortado que se encuentra parpadeando.
+                    </div>
+                </div>
+
+                <div class="explosion-overlay" id="explosionOverlay">
+                    <div class="cloud-animation"></div>
+                    <div style="color: #ef4444; font-size: 16px; font-weight: bold; letter-spacing: 1px; margin-top:15px; text-transform: uppercase;">Dispositivo Detonado</div>
+                    <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 0 40px; margin-top:6px;">Línea colapsada permanentemente o tiempo límite excedido.</div>
+                </div>
+
+                <div class="top-safety-panel">
+                    <div class="safety-light-wrapper"><div class="safety-led" id="safetyRed"></div><span>STOP</span></div>
+                    <div class="safety-light-wrapper"><div class="safety-led" id="safetyBlue"></div><span>GO</span></div>
+                </div>
+
+                <div class="modules-grid">
+                    <div class="mod-slot">
+                        <div class="timer-bg"><div class="timer-text" id="clock">02:00</div></div>
+                    </div>
+
+                    <div class="mod-slot">
+                        <div style="font-size: 9px; font-weight: bold; color: #4b5563; margin-bottom: 8px; letter-spacing: 0.5px;">SENSOR MATRIX 4x4</div>
+                        <div class="sensor-matrix-4x4" id="matrix4x4"></div>
+                        <div class="progress-box"><div class="progress-bar-inner" id="progressBar"></div></div>
+                    </div>
+
+                    <div class="mod-slot">
+                        <div class="hold-square-btn" id="holdBtn" onmousedown="startHold()" onmouseup="endHold()" onmouseleave="endHold()">HOLD</div>
+                    </div>
+
+                    <div class="mod-slot" style="justify-content: flex-start; padding-top: 25px; overflow: visible; z-index: 6;">
+                        <div class="cables-board">
+                            <div class="cable-socket"><div class="hanging-cable c-blue" id="c-blue" onclick="interactCable('blue')"></div></div>
+                            <div class="cable-socket"><div class="hanging-cable c-orange" id="c-orange" onclick="interactCable('orange')"></div></div>
+                            <div class="cable-socket"><div class="hanging-cable c-green" id="c-green" onclick="interactCable('green')"></div></div>
+                            <div class="cable-socket"><div class="hanging-cable c-purple" id="c-purple" onclick="interactCable('purple')"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="mod-slot">
+                        <div class="keypad-container" id="keypadBox">
+                            <div class="keypad-btn" id="btn-Cos" onclick="pressButton('Cos')">Cos</div>
+                            <div class="keypad-btn" id="btn-DEF" onclick="pressButton('DEF')">DEF</div>
+                            <div class="keypad-btn" id="btn-GND" onclick="pressButton('GND')">GND</div>
+                            <div class="keypad-btn" id="btn-HNG" onclick="pressButton('HNG')">HNG</div>
+                            <div class="keypad-btn" id="btn-IK" onclick="pressButton('IK')">IK</div>
+                            <div class="keypad-btn" id="btn-M/C" onclick="pressButton('M/C')">M/C</div>
+                        </div>
+                    </div>
+
+                    <div class="mod-slot">
+                        <div style="font-size: 9px; font-weight: bold; color: #4b5563; margin-bottom: 8px;">ENRUTAMIENTO PRINCIPAL</div>
+                        <div class="planning-grid">
+                            <div class="node-btn" id="node-SYS" onclick="clickPowerNode('SYS')">SYS</div>
+                            <div class="node-btn" id="node-FLX" onclick="clickPowerNode('FLX')">FLX</div>
+                            <div class="node-btn" id="node-AUX" onclick="clickPowerNode('AUX')">AUX</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-bar">
+                <select class="level-selector-dropdown" id="levelSelectMenu" onchange="jumpToLevel(this.value)">
+                </select>
+                <div class="status-input-mock" id="statusPanel">Cargando sistemas tácticos...</div>
+                <button class="btn-reset-real" onclick="resetGame()">RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const levelsDatabase = {
+            1: { matrix: 'normal', seq: ['blue'], text: ["1. Active energía (SYS ➔ FLX ➔ AUX).", "2. Corte el cable azul trenzado."] },
+            2: { matrix: 'normal', seq: ['orange', 'Cos'], text: ["1. Active nodos de energía.", "2. Desconecte cable naranja.", "3. Presione conmutador Cos."] },
+            3: { matrix: 'normal', seq: ['purple', 'GND', 'hold'], text: ["1. Enrutamiento obligatorio.", "2. Remueva cable morado.", "3. Ejecute GND.", "4. Mantenga presionado HOLD."] },
+            4: { matrix: 'normal', seq: ['blue', 'green', 'M/C'], text: ["¡MATRIZ INTERMITENTE ACTIVADA!", "Las celdas parpadean para desafiar tu memoria.", "Corte azul ➔ Corte verde ➔ Presione M/C."] },
+            5: { matrix: 'verde_rojo', seq: ['blue', 'GND'], text: ["1. Active nodos energéticos.", "2. Observe matriz (Verde+Rojo = Azul).", "3. Presione comando GND."] },
+            6: { matrix: 'morado_rojo', seq: ['orange', 'DEF'], text: ["1. Enrute energía inicial.", "2. Analice matriz (Morado+Rojo = Naranja).", "3. Presione comando DEF."] },
+            7: { matrix: 'azul_naranja', seq: ['purple', 'hold'], text: ["1. Enrutamiento base.", "2. Descifre matriz (Azul+Naranja = Morado).", "3. Sostenga el botón HOLD."] },
+            8: { matrix: 'verde_azul', seq: ['green', 'Cos', 'IK'], text: ["⚠️ ALERTA DE ESTRÉS / FALLO ACTIVA.", "El núcleo puede sabotearte al cortar.", "1. Matriz pide cable Verde.", "2. Ejecute secuencia Cos ➔ IK."] },
+            9: { matrix: 'verde_rojo', seq: ['blue', 'HNG', 'hold'], text: ["1. Analice matriz táctica.", "2. Corte cable azul.", "3. Active HNG ➔ Mantenga HOLD."] },
+            10: { matrix: 'ingenieria_nivel10', seq: ['paralelo', 'orange', 'serie'], text: ["🛠️ PROTOCOLO DE INGENIERÍA EN SERIE/PARALELO:", "1. Configure el sistema en <strong>Paralelo</strong> pulsando la llave <strong>DEF</strong>.", "2. Realice el puente cortando el cable <strong>Naranja</strong>.", "3. Cierre el circuito en <strong>Serie</strong> pulsando la llave <strong>IK</strong>."] },
+            11: { matrix: 'azul_naranja', seq: ['purple', 'blue', 'GND'], text: ["1. Enrute energía.", "2. Cable Morado ➔ Cable Azul ➔ Pulsa GND."] },
+            12: { matrix: 'verde_azul', seq: ['green', 'DEF', 'IK', 'hold'], text: ["1. Matriz intermitente activa.", "2. Cable Verde ➔ Llave DEF ➔ Llave IK ➔ HOLD."] },
+            13: { matrix: 'verde_rojo', seq: ['blue', 'orange', 'Cos'], text: ["1. Descifre patrón luminoso.", "2. Cable Azul ➔ Cable Naranja ➔ Llave Cos."] },
+            14: { matrix: 'morado_rojo', seq: ['orange', 'green', 'HNG'], text: ["1. Compruebe la guía de celdas.", "2. Cable Naranja ➔ Cable Verde ➔ Llave HNG."] },
+            15: { matrix: 'azul_naranja', seq: ['purple', 'Cos', 'DEF', 'hold'], text: ["1. Enrutamiento base.", "2. Cable Morado ➔ Llave Cos ➔ Llave DEF ➔ HOLD."] },
+            16: { matrix: 'verde_azul', seq: ['green', 'blue', 'orange', 'GND'], text: ["1. Comprobación cuádruple.", "2. Cable Verde ➔ Azul ➔ Naranja ➔ Llave GND."] },
+            17: { matrix: 'verde_rojo', seq: ['blue', 'purple', 'green', 'hold'], text: ["1. Análisis de memoria inmediata.", "2. Cable Azul ➔ Morado ➔ Verde ➔ HOLD."] },
+            18: { matrix: 'morado_rojo', seq: ['orange', 'IK', 'M/C', 'GND'], text: ["1. Desactivación avanzada.", "2. Cable Naranja ➔ Secuencia IK ➔ M/C ➔ GND."] },
+            19: { matrix: 'azul_naranja', seq: ['purple', 'green', 'Cos', 'DEF', 'hold'], text: ["1. Fase crítica de contención.", "2. Cable Morado ➔ Verde ➔ Cos ➔ DEF ➔ HOLD."] },
+            20: { matrix: 'verde_azul', seq: ['green', 'M/C', 'orange', 'GND', 'hold'], text: ["¡NÚCLEO FINAL COMPLETO!", "Opere con precisión absoluta bajo máxima intermitencia."] }
+        };
+
+        let currentLevel = 1;
+        let timeLeft = 120;
+        let timerInterval = null;
+        let randomStopInterval = null;
+        let blinkInterval = null;
+        let isGameActive = true;
+        let currentProgressIndex = 0;
+        let holdProgressInterval = null;
+        let holdPct = 0;
+        let currentSafetyState = 'blue';
+
+        let planningSequence = [];
+        let isPlanningComplete = false;
+        let isInContingency = false;
+        let lastInteractedCable = null; 
+
+        // RENDER DE SELECTOR DE NIVEL MANUAL
+        function setupLevelMenu() {
+            const menu = document.getElementById('levelSelectMenu');
+            menu.innerHTML = '';
+            for(let i=1; i<=20; i++){
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = `Chasis Nivel ${i}`;
+                menu.appendChild(opt);
+            }
+        }
+
+        function jumpToLevel(lvl) {
+            loadLevel(parseInt(lvl));
+        }
+
+        function createMatrixCells() {
+            const container = document.getElementById('matrix4x4');
+            container.innerHTML = '';
+            for (let i = 0; i < 16; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                container.appendChild(cell);
+            }
+        }
+
+        function setMatrixPattern(pattern) {
+            const cells = document.querySelectorAll('.matrix-cell');
+            cells.forEach(c => {
+                c.className = 'matrix-cell';
+                c.style.opacity = '1'; 
+            });
+
+            if (pattern === 'verde_rojo') {
+                cells[0].classList.add('green'); cells[2].classList.add('green');
+                cells[5].classList.add('red'); cells[7].classList.add('red');
+            } else if (pattern === 'morado_rojo') {
+                cells[1].classList.add('purple'); cells[3].classList.add('purple');
+                cells[13].classList.add('red'); cells[14].classList.add('red');
+            } else if (pattern === 'azul_naranja') {
+                cells[4].classList.add('blue'); cells[8].classList.add('blue');
+                cells[11].classList.add('orange'); cells[15].classList.add('orange');
+            } else if (pattern === 'verde_azul') {
+                cells[6].classList.add('green'); cells[9].classList.add('green');
+                cells[10].classList.add('blue'); cells[12].classList.add('blue');
+            } else if (pattern === 'ingenieria_nivel10') {
+                cells[0].classList.add('orange'); cells[3].classList.add('blue');
+                cells[12].classList.add('green'); cells[15].classList.add('purple');
+            } else {
+                cells[5].classList.add('purple'); cells[10].classList.add('orange');
+            }
+        }
+
+        function startBlinkEngine() {
+            clearInterval(blinkInterval);
+            if (currentLevel >= 4) {
+                blinkInterval = setInterval(() => {
+                    if (!isGameActive || isInContingency) return;
+                    const cells = document.querySelectorAll('.matrix-cell');
+                    cells.forEach(c => {
+                        let currentOp = c.style.opacity === '0' ? '1' : '0';
+                        c.style.opacity = currentOp;
+                    });
+                }, 1400);
+            }
+        }
+
+        function setSafetyLight(state) {
+            if (isInContingency) return;
+            currentSafetyState = state;
+            const redLed = document.getElementById('safetyRed');
+            const blueLed = document.getElementById('safetyBlue');
+            
+            if (state === 'blue') {
+                redLed.className = 'safety-led';
+                blueLed.className = 'safety-led active-blue';
+            } else {
+                blueLed.className = 'safety-led';
+                redLed.className = 'safety-led active-red';
+                document.getElementById('statusPanel').innerText = "🚨 SEÑAL STOP EXTREMA: Detenga operaciones temporales.";
+            }
+        }
+
+        function startRandomStopEngine() {
+            clearInterval(randomStopInterval);
+            if (currentLevel < 5) {
+                setSafetyLight('blue');
+                return;
+            }
+            setSafetyLight('blue');
+            randomStopInterval = setInterval(() => {
+                if (!isGameActive || isInContingency) return;
+                if (Math.random() < 0.35 && currentSafetyState === 'blue') {
+                    setSafetyLight('red');
+                    setTimeout(() => {
+                        if (!isGameActive || isInContingency) return;
+                        setSafetyLight('blue');
+                        document.getElementById('statusPanel').innerText = "Luz de seguridad GO restablecida.";
+                    }, 2800);
+                }
+            }, 7000);
+        }
+
+        function clickPowerNode(nodeName) {
+            if (!isGameActive || isPlanningComplete || isInContingency) return;
+            if (currentSafetyState === 'red') { triggerContingency(null); return; }
+
+            const expectedOrder = ['SYS', 'FLX', 'AUX'];
+            const nextExpected = expectedOrder[planningSequence.length];
+
+            if (nodeName === nextExpected) {
+                planningSequence.push(nodeName);
+                document.getElementById(`node-${nodeName}`).classList.add('powered');
+                incrementProgressBar(15);
+
+                if (planningSequence.length === 3) {
+                    isPlanningComplete = true;
+                    document.getElementById('statusPanel').innerText = "Línea energética acoplada con éxito.";
+                }
+            } else {
+                triggerContingency(null);
+            }
+        }
+
+        function interactCable(color) {
+            if (!isGameActive) return;
+            const cableElement = document.getElementById(`c-${color}`);
+
+            // GESTIÓN DE RECONEXIÓN POR COLAPSO
+            if (isInContingency) {
+                if (color === lastInteractedCable && cableElement.classList.contains('cut')) {
+                    cableElement.classList.remove('cut', 'flash-error');
+                    isInContingency = false;
+                    document.getElementById('contingencyOverlay').classList.remove('active');
+                    document.getElementById('clock').classList.remove('warning');
+                    document.getElementById('statusPanel').innerText = "Línea re-soldada. Núcleo estabilizado.";
+                    document.getElementById('statusPanel').style.color = "#94a3b8";
+                    setSafetyLight('blue');
+                } else {
+                    triggerExplosion();
+                }
+                return;
+            }
+
+            if (currentSafetyState === 'red' || !isPlanningComplete) { triggerContingency(color); return; }
+            if (cableElement.classList.contains('cut')) return;
+            
+            lastInteractedCable = color;
+            cableElement.classList.add('cut');
+
+            const currentExpected = levelsDatabase[currentLevel].seq[currentProgressIndex];
+            if (currentExpected === color) {
+                currentProgressIndex++;
+                updateProgressVisuals();
+                
+                // SABOTAJE DE ESTRÉS ALEATORIO POST-CORTE (Nivel 8+)
+                if (currentLevel >= 8 && Math.random() < 0.40 && currentProgressIndex < levelsDatabase[currentLevel].seq.length) {
+                    triggerContingency(color, true);
+                } else {
+                    checkLevelVictory();
+                }
+            } else {
+                triggerExplosion();
+            }
+        }
+
+        function pressButton(id) {
+            if (!isGameActive || !isPlanningComplete || isInContingency) return;
+            if (currentSafetyState === 'red') { triggerExplosion(); return; }
+
+            let currentExpected = levelsDatabase[currentLevel].seq[currentProgressIndex];
+
+            // Traducciones lógicas específicas para el Nivel 10 (Protocolos de Ingeniería)
+            if (currentLevel === 10) {
+                if (currentExpected === 'paralelo' && id === 'DEF') currentExpected = 'DEF';
+                if (currentExpected === 'serie' && id === 'IK') currentExpected = 'IK';
+            }
+
+            if (currentExpected === id) {
+                currentProgressIndex++;
+                updateProgressVisuals();
+                checkLevelVictory();
+            } else {
+                triggerExplosion();
+            }
+        }
+
+        function startHold() {
+            if (!isGameActive || !isPlanningComplete || isInContingency || currentSafetyState === 'red') return;
+            
+            const currentExpected = levelsDatabase[currentLevel].seq[currentProgressIndex];
+            if (currentExpected !== 'hold') {
+                triggerExplosion();
+                return;
+            }
+
+            document.getElementById('holdBtn').classList.add('holding');
+            clearInterval(holdProgressInterval);
+            
+            holdProgressInterval = setInterval(() => {
+                holdPct += 4;
+                document.getElementById('statusPanel').innerText = `Descargando estática residual: ${holdPct}%`;
+                if (holdPct >= 100) {
+                    clearInterval(holdProgressInterval);
+                    document.getElementById('holdBtn').classList.remove('holding');
+                    currentProgressIndex++;
+                    updateProgressVisuals();
+                    checkLevelVictory();
+                }
+            }, 80);
+        }
+
+        function endHold() {
+            if (holdPct > 0 && holdPct < 100) {
+                clearInterval(holdProgressInterval);
+                holdPct = 0;
+                document.getElementById('holdBtn').classList.remove('holding');
+                document.getElementById('statusPanel').innerText = "⚠️ Error de retención: descarga interrumpida.";
+                triggerExplosion();
+            }
+        }
+
+        function updateProgressVisuals() {
+            const totalSteps = levelsDatabase[currentLevel].seq.length + 3; // +3 de los nodos de energía
+            const currentStepsDone = planningSequence.length + currentProgressIndex;
+            const pct = (currentStepsDone / totalSteps) * 100;
+            document.getElementById('progressBar').style.width = `${pct}%`;
+        }
+
+        function incrementProgressBar(amt) {
+            const currentWidth = parseFloat(document.getElementById('progressBar').style.width) || 0;
+            document.getElementById('progressBar').style.width = `${Math.min(currentWidth + amt, 100)}%`;
+        }
+
+        function triggerContingency(color, isSabotage = false) {
+            if (isSabotage) {
+                isInContingency = true;
+                document.getElementById('contingencyOverlay').classList.add('active');
+                document.getElementById('clock').classList.add('warning');
+                document.getElementById('statusPanel').innerText = "🚨 MICRO-COLAPSO DETECTADO.";
+                document.getElementById('statusPanel').style.color = "#f97316";
+                document.getElementById(`c-${color}`).classList.add('flash-error');
+                setSafetyLight('red');
+            } else {
+                triggerExplosion();
+            }
+        }
+
+        function triggerExplosion() {
+            isGameActive = false;
+            clearInterval(timerInterval);
+            clearInterval(randomStopInterval);
+            clearInterval(blinkInterval);
+            document.getElementById('explosionOverlay').classList.add('active');
+            document.getElementById('statusPanel').innerText = "💥 DISPOSITIVO DETONADO - SISTEMA COMPROMETIDO.";
+            document.getElementById('statusPanel').style.color = "#ef4444";
+        }
+
+        function checkLevelVictory() {
+            if (currentProgressIndex === levelsDatabase[currentLevel].seq.length) {
+                isGameActive = false;
+                clearInterval(timerInterval);
+                clearInterval(randomStopInterval);
+                clearInterval(blinkInterval);
+                document.getElementById('statusPanel').innerText = "🎉 Cifrado desactivado con éxito. Pasando al siguiente chasis.";
+                document.getElementById('statusPanel').style.color = "#10b981";
+                
+                setTimeout(() => {
+                    if (currentLevel < 20) {
+                        currentLevel++;
+                        loadLevel(currentLevel);
+                    } else {
+                        document.getElementById('statusPanel').innerText = "🏆 ¡Felicidades! Has neutralizado los 20 chasis del Disruptor Táctico.";
+                    }
+                }, 2000);
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isGameActive) return;
+                timeLeft--;
+                
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                document.getElementById('clock').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                
+                if (timeLeft <= 15) {
+                    document.getElementById('clock').classList.add('warning');
+                }
+
+                if (timeLeft <= 0) {
+                    triggerExplosion();
+                }
+            }, 1000);
+        }
+
+        function renderManualGuidelines(textArray) {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = '';
+            textArray.forEach(t => {
+                const card = document.createElement('div');
+                card.className = 'step-card';
+                card.innerHTML = t;
+                container.appendChild(card);
+            });
+        }
+
+        function loadLevel(lvl) {
+            currentLevel = lvl;
+            isGameActive = true;
+            isInContingency = false;
+            isPlanningComplete = false;
+            currentProgressIndex = 0;
+            planningSequence = [];
+            holdPct = 0;
+            timeLeft = 120;
+            
+            document.getElementById('lvlIndicator').innerText = `Nivel ${currentLevel} / 20`;
+            document.getElementById('levelSelectMenu').value = currentLevel;
+            document.getElementById('clock').classList.remove('warning');
+            document.getElementById('clock').innerText = "02:00";
+            document.getElementById('progressBar').style.width = "0%";
+            document.getElementById('contingencyOverlay').classList.remove('active');
+            document.getElementById('explosionOverlay').classList.remove('active');
+            document.getElementById('statusPanel').innerText = "Esperando acoplamiento de energía...";
+            document.getElementById('statusPanel').style.color = "#94a3b8";
+
+            // Limpieza visual de componentes mecánicos
+            document.querySelectorAll('.node-btn').forEach(n => n.classList.remove('powered'));
+            document.querySelectorAll('.hanging-cable').forEach(c => c.className = `hanging-cable c-${c.id.split('-')[1]}`);
+
+            createMatrixCells();
+            setMatrixPattern(levelsDatabase[currentLevel].matrix);
+            renderManualGuidelines(levelsDatabase[currentLevel].text);
+            
+            startTimer();
+            startBlinkEngine();
+            startRandomStopEngine();
+        }
+
+        function resetGame() {
+            loadLevel(currentLevel);
+        }
+
+        // Ejecución inicial de sistemas
+        setupLevelMenu();
+        loadLevel(1);
+    </script>
+</body>
+</html>
